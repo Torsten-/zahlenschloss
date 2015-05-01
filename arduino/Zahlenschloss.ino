@@ -41,13 +41,14 @@ char keys[KEYPAD_ROWS][KEYPAD_COLS] = { // Keypad Characters
   {'4','5','6'},
   {'7','8','9'},
   {'*','0','#'}
-};r
+};
 byte rowPins[KEYPAD_ROWS] = {10, 9, 8, 7}; //connect to the row pinouts of the keypad
 byte colPins[KEYPAD_COLS] = {4, 5, 6};     //connect to the column pinouts of the keypad
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS );
 
 // LCD
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+uint8_t pin_lcd_offset = 5; // Offset to move PIN to the right place in the display
 
 // Pincode
 char pin[PIN_LENGTH];
@@ -70,7 +71,9 @@ void setup() {
   lcd.backlight();
   lastBacklightOn = millis();
   lcd.setCursor(0,0);
-  lcd.print("Enter PIN + *");
+  lcd.print("Willkommen");
+  lcd.setCursor(0,1);
+  lcd.print("PIN: ");
   
   // Reset LCD and Pin
   reset();
@@ -98,7 +101,7 @@ void loop() {
     }else{
       if(key != '*' && key != '#'){ // Ignore * and # as Input
         // Remember given character to build whole pin before sending
-        lcd.setCursor(pinCounter,1);
+        lcd.setCursor(pin_lcd_offset+pinCounter,1);
         lcd.print("*");
         pin[pinCounter] = key;
         pinCounter++;
@@ -138,6 +141,6 @@ void sendPin(){
 void reset(){
   for(uint8_t i=0; i < PIN_LENGTH; i++) pin[i] = 10; // Reset pin-buffer
   pinCounter = 0;                                    // Reset pin-counter
-  lcd.setCursor(0,1);                                // Reset LCD
+  lcd.setCursor(pin_lcd_offset,1);                   // Reset LCD
   lcd.print("                ");                     // Reset LCD
 }
