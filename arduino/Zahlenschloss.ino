@@ -34,17 +34,17 @@
 //// Initialise global variables ////
 /////////////////////////////////////
 // Keypad
-const byte rows = 4;      // Number of Rows of the Keypad
-const byte cols = 3;      // Number of Cols of the Keypad
-char keys[rows][cols] = { // Keypad Characters
+#define KEYPAD_ROWS 4      // Number of Rows of the Keypad
+#define KEYPAD_COLS 3      // Number of Cols of the Keypad
+char keys[KEYPAD_ROWS][KEYPAD_COLS] = { // Keypad Characters
   {'1','2','3'},
   {'4','5','6'},
   {'7','8','9'},
   {'*','0','#'}
-};
-byte rowPins[rows] = {10, 9, 8, 7}; //connect to the row pinouts of the keypad
-byte colPins[cols] = {4, 5, 6};     //connect to the column pinouts of the keypad
-Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, rows, cols );
+};r
+byte rowPins[KEYPAD_ROWS] = {10, 9, 8, 7}; //connect to the row pinouts of the keypad
+byte colPins[KEYPAD_COLS] = {4, 5, 6};     //connect to the column pinouts of the keypad
+Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS );
 
 // LCD
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
