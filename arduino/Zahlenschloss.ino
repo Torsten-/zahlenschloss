@@ -22,13 +22,18 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
+#include <SoftwareSerial.h>
 
 ///////////////////////
 //// Configuration ////
 ///////////////////////
 #define BACKLIGHT_DELAY 10     // after X seconds the display backlight turns off
 #define PIN_LENGTH 6           // length of the Pin-Code
-#define DEBUG_TO_SERIAL true   // show messages on serial interface
+#define DEBUG_TO_SERIAL       // show messages on serial interface
+#define SSID "Sektor ZZ9 Plural Z Alpha"
+#define PASS "wADLSJNJCWY5FVTOeMe7"
+#define IP "192.168.42.81"
+String URL = "GET /~torsten/zahlenschloss/test.php?pin=";
 
 /////////////////////////////////////
 //// Initialise global variables ////
@@ -46,6 +51,9 @@ byte rowPins[KEYPAD_ROWS] = {10, 9, 8, 7}; //connect to the row pinouts of the k
 byte colPins[KEYPAD_COLS] = {4, 5, 6};     //connect to the column pinouts of the keypad
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS );
 
+// WLAN
+SoftwareSerial ESPserial(2, 3); // RX | TX
+
 // LCD
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 uint8_t pin_lcd_offset = 5; // Offset to move PIN to the right place in the display
@@ -61,19 +69,51 @@ long lastBacklightOn = 0;
 ///////////////
 void setup() {
   // Debugging
-  if(DEBUG_TO_SERIAL){
+  #ifdef DEBUG_TO_SERIAL
     Serial.begin(9600);
     Serial.println("Welcome to Zahlenschloss - debugging enabled ..");
-  }
+  #endif
   
   // Init LCD
   lcd.begin(16,2);
   lcd.backlight();
   lastBacklightOn = millis();
-  lcd.setCursor(0,0);
-  lcd.print("Willkommen");
-  lcd.setCursor(0,1);
-  lcd.print("PIN: ");
+ 
+  // Init WLAN
+  ESPserial.begin(9600);
+  ESPserial.println("AT");  
+  delay(5000);
+  if(ESPserial.find("OK")){
+    if(connectWiFi()){
+      #ifdef DEBUG_TO_SERIAL
+        Serial.println("WLAN connected");
+      #endif
+      lcd.setCursor(0,0);
+      lcd.print("WLAN            ");
+      lcd.setCursor(0,1);
+      lcd.print("connected       ");
+    }else{
+      lcd.setCursor(0,0);
+      lcd.print("ERROR: WLAN     ");
+      lcd.setCursor(0,1);
+      lcd.print("not connected   ");
+      #ifdef DEBUG_TO_SERIAL
+        Serial.println("WLAN not connected ..");
+        Serial.println("-- boot stopped --");
+      #endif
+      while(true){ delay(50000); } // Don't boot any further
+    }
+  }else{
+    lcd.setCursor(0,0);
+    lcd.print("ERROR:WLAN-Modul");
+    lcd.setCursor(0,1);
+    lcd.print("not repsonding  ");
+      #ifdef DEBUG_TO_SERIAL
+        Serial.println("WLAN Module not repsonding ..");
+        Serial.println("-- boot stopped --");
+      #endif
+    while(true){ delay(50000); } // Don't boot any further
+  }
   
   // Reset LCD and Pin
   reset();
@@ -123,6 +163,10 @@ void loop() {
 /////////////
 // This function sends the Pin to the server
 void sendPin(){
+  // Update LCD
+  lcd.setCursor(0,1);
+  lcd.print("Pruefe PIN ..   ");
+  
   // Build String out of pin
   String pinString;
   for(uint8_t i=0; i<16; i++){
@@ -131,7 +175,91 @@ void sendPin(){
     }else break;
   }
   
-  if(DEBUG_TO_SERIAL) Serial.println(pinString);
+  #ifdef DEBUG_TO_SERIAL
+    Serial.println("Pin entered:");
+    Serial.println(pinString);
+  #endif
+  
+  ////////////////////
+  // Send PIN via WLAN
+  ////////////////////
+  // Open Connection to Server
+  String cmd = "AT+CIPSTART=\"TCP\",\"";
+  cmd += IP;
+  cmd += "\",80";
+  #ifdef DEBUG_TO_SERIAL
+    Serial.println("CMD: "+cmd);
+  #endif
+  ESPserial.println(cmd);
+  delay(3000);
+  if(ESPserial.find("Error")){
+    #ifdef DEBUG_TO_SERIAL
+      Serial.println("ERROR: Connection to Server not established");
+    #endif
+    
+    // Update LCD
+    lcd.setCursor(0,1);
+    lcd.print("techn. Fehler #1");
+    delay(5000);
+    
+    return;
+  }
+  while(ESPserial.available()){ // Workaround to clear buffer
+    ESPserial.read();
+  }
+  
+  // Send GET-Request
+  cmd = URL;
+  cmd += pinString;
+  cmd += "\r\n";
+  ESPserial.print("AT+CIPSEND=");
+  ESPserial.println(cmd.length());
+
+//  while(ESPserial.available()){
+//    Serial.write(ESPserial.read());
+//  }
+  
+  if(ESPserial.find(">")){
+    #ifdef DEBUG_TO_SERIAL
+      Serial.println("URL: "+cmd);
+    #endif    
+    ESPserial.println(cmd);
+
+    // Check Result
+    if(ESPserial.find("PIN=OK")){
+      #ifdef DEBUG_TO_SERIAL
+        Serial.println("PIN accepted");
+      #endif
+      
+      // Update LCD
+      lcd.setCursor(0,1);
+      lcd.print("Zugang gewaehrt ");
+      delay(5000);
+    }else{
+      #ifdef DEBUG_TO_SERIAL
+        Serial.println("PIN declined - or some confusing answere from backend");
+      #endif
+      
+      // Update LCD
+      lcd.setCursor(0,1);
+      lcd.print("PIN falsch      ");
+      delay(5000);
+    }
+    
+    // Close connection
+    ESPserial.println("AT+CIPCLOSE");
+  }else{
+    ESPserial.println("AT+CIPCLOSE");
+
+    #ifdef DEBUG_TO_SERIAL
+      Serial.println("ERROR: AT+CIPSEND failed");
+    #endif
+    
+    // Update LCD
+    lcd.setCursor(0,1);
+    lcd.print("techn. Fehler #2");
+    delay(5000);
+  }
 }
 
 ///////////
@@ -141,6 +269,47 @@ void sendPin(){
 void reset(){
   for(uint8_t i=0; i < PIN_LENGTH; i++) pin[i] = 10; // Reset pin-buffer
   pinCounter = 0;                                    // Reset pin-counter
-  lcd.setCursor(pin_lcd_offset,1);                   // Reset LCD
-  lcd.print("                ");                     // Reset LCD
+  
+  // Reset LCD
+  lcd.setCursor(0,0);
+  lcd.print("Willkommen");
+  lcd.setCursor(0,1);
+  lcd.print("PIN: ");
+  lcd.setCursor(pin_lcd_offset,1);
+  lcd.print("                ");
+}
+
+/////////////////
+// connectWiFi //
+/////////////////
+// Connect to the WLAN
+boolean connectWiFi(){
+  // Set Mode to Client
+  ESPserial.println("AT+CWMODE=1");
+  delay(2000);
+  while(ESPserial.available()){ // Workaround to clear buffer
+    ESPserial.read();
+  }
+  
+  // Connect with SSID & Key
+  String cmd = "AT+CWJAP=\"";
+  cmd += SSID;
+  cmd += "\",\"";
+  cmd += PASS;
+  cmd += "\"";
+  #ifdef DEBUG_TO_SERIAL
+    Serial.println("CMD: "+cmd);
+  #endif
+  ESPserial.println(cmd);
+  while(ESPserial.available()){ // Workaround to clear buffer
+    ESPserial.read();
+  }
+  delay(5000);
+ 
+  // Check result
+  if(ESPserial.find("OK")){
+    return true;
+  }else{
+    return false;
+  }
 }
