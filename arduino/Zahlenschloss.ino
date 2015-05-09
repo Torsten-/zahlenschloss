@@ -30,10 +30,10 @@
 #define BACKLIGHT_DELAY 10     // after X seconds the display backlight turns off
 #define PIN_LENGTH 6           // length of the Pin-Code
 #define DEBUG_TO_SERIAL       // show messages on serial interface
-#define SSID "Sektor ZZ9 Plural Z Alpha"
-#define PASS "wADLSJNJCWY5FVTOeMe7"
-#define IP "192.168.42.81"
-String URL = "GET /~torsten/zahlenschloss/test.php?pin=";
+#define SSID ""
+#define PASS ""
+#define IP ""
+String URL = "GET /zahlenschloss/test.php?pin=";
 
 /////////////////////////////////////
 //// Initialise global variables ////
@@ -135,24 +135,24 @@ void loop() {
   if (key != NO_KEY){
     lastBacklightOn = millis(); // Reset timer for Timeout
     if(displayOff){
-      // If display was off turn on and ignore Key input
+      // If display was off turn on
       lcd.backlight();
       displayOff = false;
-    }else{
-      if(key != '*' && key != '#'){ // Ignore * and # as Input
-        // Remember given character to build whole pin before sending
-        lcd.setCursor(pin_lcd_offset+pinCounter,1);
-        lcd.print("*");
-        pin[pinCounter] = key;
-        pinCounter++;
+    }
+    
+    if(key != '*' && key != '#'){ // Ignore * and # as Input
+      // Remember given character to build whole pin before sending
+      lcd.setCursor(pin_lcd_offset+pinCounter,1);
+      lcd.print("*");
+      pin[pinCounter] = key;
+      pinCounter++;
         
-        // Pin length reached
-        if(pinCounter == PIN_LENGTH){
-//        if(key == '*' || key == '#' || pinCounter == PIN_LENGTH){ // alternative method to send the pin also by pressing * or #
-          // Send pin and reset LCD and Pin
-          sendPin();
-          reset();
-        }
+      // Pin length reached
+      if(pinCounter == PIN_LENGTH){
+//      if(key == '*' || key == '#' || pinCounter == PIN_LENGTH){ // alternative method to send the pin also by pressing * or #
+        // Send pin and reset LCD and Pin
+        sendPin();
+        reset();
       }
     }
   }
@@ -191,7 +191,7 @@ void sendPin(){
     Serial.println("CMD: "+cmd);
   #endif
   ESPserial.println(cmd);
-  delay(3000);
+  delay(5000);
   if(ESPserial.find("Error")){
     #ifdef DEBUG_TO_SERIAL
       Serial.println("ERROR: Connection to Server not established");
@@ -211,22 +211,35 @@ void sendPin(){
   // Send GET-Request
   cmd = URL;
   cmd += pinString;
-  cmd += "\r\n";
   ESPserial.print("AT+CIPSEND=");
-  ESPserial.println(cmd.length());
+  ESPserial.println(cmd.length()+2); // +2 for CR+LF
 
-//  while(ESPserial.available()){
-//    Serial.write(ESPserial.read());
-//  }
-  
   if(ESPserial.find(">")){
     #ifdef DEBUG_TO_SERIAL
       Serial.println("URL: "+cmd);
-    #endif    
-    ESPserial.println(cmd);
+    #endif
+    
+    // Send command with URL, clear serial buffer and send CR+LF to execute the command
+    ESPserial.print(cmd);
+    while(ESPserial.available()){ // Workaround to clear buffer
+      ESPserial.read();
+    }
+    ESPserial.println();
+    delay(1000);
+    
+    String responseBuffer = "";
+    while(ESPserial.available()){
+      char character = ESPserial.read();
+      responseBuffer.concat(character);
+    }
+    
+    #ifdef DEBUG_TO_SERIAL
+      Serial.println("Response:");
+      Serial.println(responseBuffer);
+    #endif
 
     // Check Result
-    if(ESPserial.find("PIN=OK")){
+    if(responseBuffer.substring(responseBuffer.indexOf("=")+1,responseBuffer.indexOf("=")+3) == "OK"){
       #ifdef DEBUG_TO_SERIAL
         Serial.println("PIN accepted");
       #endif
