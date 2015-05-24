@@ -34,4 +34,13 @@ define('HOMEMATIC_IP', '192.168.142.150');
 
 // Homematic ID des Tuerschloss-Motors
 define('HOMEMATIC_ID', '1309');
+
+// Homematic Status bei offener Tuer
+define('HOMEMATIC_OPEN', 'true');
+
+// Homematic Status bei geschlosssener Tuer
+define('HOMEMATIC_CLOSED', 'false');
+
+// Timeout in Sekunden, in dem versucht wird Homematic zu erreichen
+define('HOMEMATIC_TIMEOUT', '5');
 ?>

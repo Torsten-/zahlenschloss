@@ -1,13 +1,16 @@
 # zahlenschloss
 Zahlenschloss für den Homematic Türschließer
 
+## Statuscodes
+- PIN=w => PIN falsch (wrong)
+- PIN=o => PIN richtig - Tür geöffnet (open)
+- PIN=c => PIN richtig - Tür geschlossen (close)
+
 ## Webserver
-### mcrypt muss installiert und aktiviert sein
+### Requirements
 ```
-sudo apt-get install php5-mcrypt
-
+sudo apt-get install php5-mcrypt php5-curl
 sudo php5enmod mcrypt
-
 sudo service apache2 restart
 ```
 

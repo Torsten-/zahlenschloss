@@ -27,20 +27,20 @@ open_log();
 
 if(empty($_GET["pin"]) || !is_numeric($_GET["pin"])){
   write_log("ERROR: Pin not set or not numeric: ".$_GET["pin"]);
-  die("PIN=NOK");
+  exit("PIN=w");
 }
 $given_pin = $_GET["pin"];
 
 $file = file_get_contents(PIN_FILE);
 if(!$file){
   write_log("ERROR: Couldn't open ".PIN_FILE);
-  die("PIN=NOK");
+  exit("PIN=w");
 }
 
 $pins = json_decode($file,true);
 if(!$pins){
   write_log("ERROR: Couldn't decode JSON");
-  die("PIN=NOK");
+  exit("PIN=w");
 }
 
 foreach($pins as $pin){
@@ -55,15 +55,40 @@ foreach($pins as $pin){
   if($given_pin == $pin["code"]){
     $now = time();
     if($now > $startdate && $now < $enddate){
-      write_log("INFO: Pin accepted", $pin);
-      exit("PIN=OK");
+      $state = get_state();
+      if(!$state){
+        write_log("ERROR: Couldn't get Homematic state within ".HOMEMATIC_TIMEOUT. " seconds");
+        exit("PIN=w");
+      }
+
+      $log_state = "";
+      $new_state = "";
+      if($state == HOMEMATIC_OPEN){
+        $new_state = HOMEMATIC_CLOSED;
+        $log_state = "open => closed";
+      }elseif($state == HOMEMATIC_CLOSED){
+        $new_state = HOMEMATIC_OPEN;
+        $log_state = "closed => open";
+      }else{
+        write_log("ERROR: Homematic status unknown: ".$state);
+        exit("PIN=w");
+      }
+    
+      $response = change_state($new_state);
+      if(!$response){
+        write_log("ERROR: Couldn't change Homematic state");
+        exit("PIN=w");
+      }else{
+        write_log("INFO: Pin accepted - Homematic Status changed: ".$log_state, $pin);
+        exit("PIN=o");
+      }
     }else{
       write_log("WARNING: Pin was correct but out of timerange", $pin);
-      exit("PIN=NOK");
+      exit("PIN=w");
     }
   }
 }
 
 write_log("WARNING: Pin not found: ".$given_pin);
-exit("PIN=NOK");
+exit("PIN=w");
 ?>

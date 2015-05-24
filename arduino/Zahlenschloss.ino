@@ -33,7 +33,7 @@
 #define SSID ""
 #define PASS ""
 #define IP ""
-String URL = "GET /zahlenschloss/test.php?pin=";
+String URL = "GET /?pin=";
 
 /////////////////////////////////////
 //// Initialise global variables ////
@@ -225,7 +225,7 @@ void sendPin(){
       ESPserial.read();
     }
     ESPserial.println();
-    delay(1000);
+    delay(2000);
     
     String responseBuffer = "";
     while(ESPserial.available()){
@@ -239,18 +239,30 @@ void sendPin(){
     #endif
 
     // Check Result
-    if(responseBuffer.substring(responseBuffer.indexOf("=")+1,responseBuffer.indexOf("=")+3) == "OK"){
+    String result = responseBuffer.substring(responseBuffer.indexOf("=")+1,responseBuffer.indexOf("=")+2);
+    if(result == "o"){
       #ifdef DEBUG_TO_SERIAL
-        Serial.println("PIN accepted");
+        Serial.println("PIN accepted - door opened");
       #endif
       
       // Update LCD
       lcd.setCursor(0,1);
-      lcd.print("Zugang gewaehrt ");
+      lcd.print("Tuer geoeffnet  ");
+      delay(5000);
+    }else if(result == "c"){
+      #ifdef DEBUG_TO_SERIAL
+        Serial.println("PIN accepted - door closed");
+      #endif
+      
+      // Update LCD
+      lcd.setCursor(0,1);
+      lcd.print("Tuer geschlossen");
       delay(5000);
     }else{
       #ifdef DEBUG_TO_SERIAL
         Serial.println("PIN declined - or some confusing answere from backend");
+        Serial.print("Result: ");
+        Serial.println(result);
       #endif
       
       // Update LCD

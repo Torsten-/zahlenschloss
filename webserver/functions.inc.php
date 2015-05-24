@@ -55,15 +55,17 @@ function change_state($state){
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, "http://".HOMEMATIC_IP."/addons/xmlapi/statechange.cgi?ise_id=".HOMEMATIC_ID."&new_value=".$state);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-  curl_exec($ch);
+  curl_setopt($ch, CURLOPT_TIMEOUT, HOMEMATIC_TIMEOUT);
+  $response = curl_exec($ch);
   curl_close($ch);
+  return $response;
 }
-
 
 function get_state(){
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, "http://".HOMEMATIC_IP."/addons/xmlapi/state.cgi?channel_id=".HOMEMATIC_ID);
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_TIMEOUT, HOMEMATIC_TIMEOUT);
   $response = curl_exec($ch);
   curl_close($ch);
 
@@ -77,18 +79,6 @@ function get_state(){
     }
   }
 
-  return "unknown";
+  return false;
 }
-
-/*
-if($_GET["pin"] == "123456"){
-  $state = get_state();
-  $new_state = "";
-  if($state == "false") $new_state = "true";
-  else $new_state = "false";
-
-  change_state($new_state);
-  echo "PIN=OK";
-}else echo "PIN=NOK";
-*/
 ?>
