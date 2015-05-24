@@ -1,6 +1,28 @@
 <?php
+/*
+  https://github.com/Torsten-/zahlenschloss
+
+  Copyright (C) 2015 Zahlenschloss
+  Torsten Amshove <torsten@amshove.net>
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along
+  with this program; if not, write to the Free Software Foundation, Inc.,
+  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
 require("config.inc.php");
 require("functions.inc.php");
+require("mc.inc.php");
 
 open_log();
 
@@ -10,9 +32,9 @@ if(empty($_GET["pin"]) || !is_numeric($_GET["pin"])){
 }
 $given_pin = $_GET["pin"];
 
-$file = file_get_contents($pin_file);
+$file = file_get_contents(PIN_FILE);
 if(!$file){
-  write_log("ERROR: Couldn't open ".$pin_file);
+  write_log("ERROR: Couldn't open ".PIN_FILE);
   die("PIN=NOK");
 }
 
