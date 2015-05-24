@@ -22,10 +22,12 @@
 
 $log_fh = null;
 
-function open_log(){
+function open_log($file = ""){
   global $log_fh;
 
-  $log_fh = fopen("logs/".date("Y-m-d").".log","a");
+  if(empty($file)) $file = date("Y-m-d").".log";
+
+  $log_fh = fopen("logs/".$file,"a");
 
   if(!$log_fh) die("ERROR opening logfile");
   else return true;
@@ -39,7 +41,11 @@ function write_log($message, $array = null){
     $message .= " # ".json_encode($array);
   }
 
-  $return = fwrite($log_fh, date("Y-m-d H:i:s")." - ".$_SERVER["REMOTE_ADDR"]." - ".$message."\n");
+  $log = date("Y-m-d H:i:s")." - ";
+  if(isset($_SERVER["REMOTE_ADDR"])) $log .= $_SERVER["REMOTE_ADDR"]." - ";
+  $log .= $message."\n";
+
+  $return = fwrite($log_fh, $log);
 
   if(!$return) die("ERROR writing logfile");
   else return true;

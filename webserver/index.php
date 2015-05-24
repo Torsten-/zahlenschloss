@@ -22,7 +22,6 @@
 
 require("config.inc.php");
 require("functions.inc.php");
-require("mc.inc.php");
 
 open_log();
 
