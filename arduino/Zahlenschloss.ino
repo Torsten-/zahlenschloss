@@ -135,24 +135,24 @@ void loop() {
   if (key != NO_KEY){
     lastBacklightOn = millis(); // Reset timer for Timeout
     if(displayOff){
-      // If display was off turn on
+      // If display was off turn on and ignore Key input
       lcd.backlight();
       displayOff = false;
-    }
-    
-    if(key != '*' && key != '#'){ // Ignore * and # as Input
-      // Remember given character to build whole pin before sending
-      lcd.setCursor(pin_lcd_offset+pinCounter,1);
-      lcd.print("*");
-      pin[pinCounter] = key;
-      pinCounter++;
-        
-      // Pin length reached
-      if(pinCounter == PIN_LENGTH){
-//      if(key == '*' || key == '#' || pinCounter == PIN_LENGTH){ // alternative method to send the pin also by pressing * or #
-        // Send pin and reset LCD and Pin
-        sendPin();
-        reset();
+    }else{    
+      if(key != '*' && key != '#'){ // Ignore * and # as Input
+        // Remember given character to build whole pin before sending
+        lcd.setCursor(pin_lcd_offset+pinCounter,1);
+        lcd.print("*");
+        pin[pinCounter] = key;
+        pinCounter++;
+          
+        // Pin length reached
+        if(pinCounter == PIN_LENGTH){
+//        if(key == '*' || key == '#' || pinCounter == PIN_LENGTH){ // alternative method to send the pin also by pressing * or #
+          // Send pin and reset LCD and Pin
+          sendPin();
+          reset();
+        }
       }
     }
   }
